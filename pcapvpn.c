@@ -1,12 +1,18 @@
-/* * pcapvpn.c
+/*
+ * pcapvpn.c
  * Creates a layer-2 VPN via a tap device and pcap
  * By J. Stuart McMurray
  * Created 20170709
- * Last Modified 20170709
+ * Last Modified 20170711
  */
+
+#ifdef __linux__
+#define _GNU_SOURCE
+#endif /* #ifdef __linux__ */
 
 #include <arpa/inet.h>
 
+#include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -15,18 +21,24 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define BUFLEN UINT16_MAX
 
+#define MACFILTER "ether host %s"
+#define IPFILTER "host %s"
+
 void usage(void);
 int do_tap(char *dev);
-int do_pcap(char *dev, char *mac);
+int do_pcap(char *dev, char *addr);
 void * tap_rx(void *fd);
 int tap_tx(int fd);
 void read_full(int fd, void *buf, size_t nbytes);
 void *pcap_tx(void *arg);
 void pcap_rx(u_char *, const struct pcap_pkthdr *hdr, const u_char *pkt);
+int is_mac(char *addr);
+int is_ip(char *addr);
 
 int
 main(int argc, char **argv)
@@ -121,10 +133,11 @@ tap_tx(int fd)
         for (;;) {
                 /* Read the size and frame */
                 read_full(STDIN_FILENO, &nr, sizeof(nr));
+                nr = ntohs(nr);
                 read_full(STDIN_FILENO, buf, (size_t)nr);
 
                 /* Send to the tap device */
-                if (-1 == write(fd, buf, (size_t)ntohs(nr)))
+                if (-1 == write(fd, buf, (size_t)nr))
                         err(9, "write");
         }
 
@@ -148,7 +161,7 @@ read_full(int fd, void *buf, size_t nbytes)
 
 /* do_pcap proxies between pcap sniffing, stdio, and pcap injection */
 int
-do_pcap(char *dev, char *mac)
+do_pcap(char *dev, char *addr)
 {
         pcap_t *p;
         struct bpf_program prog;
@@ -156,11 +169,25 @@ do_pcap(char *dev, char *mac)
         char *filt;
         char errbuf[PCAP_ERRBUF_SIZE];
         pthread_t tid;
-        
-        /* BPF filter text */
-        if (0 > asprintf(&filt, "ether host %s and icmp or udp", mac))
-                err(12, "asprintf");
 
+        /* Work out whether we have a mac address or IP adderss and make the
+         * BPF filter text for it */
+        if (is_mac(addr)) { /* MAC Address */
+                if (0 > asprintf(&filt, MACFILTER, addr))
+                        err(12, "asprintf");
+        } else if (is_ip(addr)) { /* IP Address */
+                if (0 > asprintf(&filt, IPFILTER, addr))
+                        err(20, "asprintf");
+        } else { /* Literal filter */
+                if (0 > asprintf(&filt, "%s", addr))
+                        err(21, "asprintf");
+        }
+
+        fprintf(stderr, "BPF filter: %s\n", filt); fflush(stderr); /* DEBUG */
+        if (NULL == filt) {
+                errx(1, "NULL filter");
+        }
+        
         /* Attach to device with pcap */
         if (NULL == (p = pcap_open_live(dev, BUFLEN, 1, 10, errbuf)))
                 errx(11, "pcap_open_live: %s", errbuf);
@@ -176,7 +203,7 @@ do_pcap(char *dev, char *mac)
         if (-1 == pcap_setfilter(p, &prog))
                 err(14, "pcap_setfilter");
         pcap_freecode(&prog);
-        free(filt);
+        free(filt); filt = NULL;
 
         /* Read from stdin, inject to the network */
         if (0 != pthread_create(&tid, NULL, pcap_tx, p))
@@ -202,8 +229,9 @@ pcap_tx(void *arg)
         for (;;) {
                 /* Size of frame to read */
                 read_full(STDIN_FILENO, &nr, sizeof(nr));
+                nr = ntohs(nr);
                 /* Read frame */
-                read_full(STDIN_FILENO, buf, (size_t)ntohs(nr));
+                read_full(STDIN_FILENO, buf, (size_t)nr);
 
                 /* Inject it */
                 if (-1 == pcap_inject(p, buf, (size_t)nr))
@@ -218,6 +246,7 @@ void
 pcap_rx(u_char *user, const struct pcap_pkthdr *hdr, const u_char *pkt)
 {
         uint16_t nr;
+        ssize_t nw;
 
         /* Make sure frame wasn't truncated */
         if (hdr->len > hdr->caplen) {
@@ -242,7 +271,7 @@ pcap_rx(u_char *user, const struct pcap_pkthdr *hdr, const u_char *pkt)
                 err(18, "write");
 
         /* Write packet to stdout */
-        if (-1 == write(STDOUT_FILENO, pkt, (size_t)hdr->caplen))
+        if (-1 == (nw = write(STDOUT_FILENO, pkt, (size_t)hdr->caplen)))
                 err(19, "write");
 }
 
@@ -253,4 +282,62 @@ usage(void)
         fprintf(stderr, "Usage: %s -t tap_file\n", __progname);
         fprintf(stderr, "       %s device mac_address\n", __progname);
         exit(-1);
+}
+
+/* is_mac returns non-zero if the passed-in string is a MAC address */
+int
+is_mac(char *addr)
+{
+        int i;
+
+        /* Make sure it's the right length */
+        if (17 != strnlen(addr, 18))
+                return 0;
+
+        /* Check that each character is either a hex digit or a colon */
+        for (i = 0; i < 17; ++i) {
+                /* Every third character should be a colon */
+                if (2 == i%3) {
+                        if (':' != addr[i])
+                                return 2;
+                        else
+                                continue;
+                }
+
+                /* Every other character should be a hex digit */
+                if (!isxdigit((int)addr[i]))
+                        return 3;
+        }
+
+        return 1;
+}
+
+/* is_ip returns non-zero if the passed-in string is an IP address */
+int
+is_ip(char *addr)
+{
+        size_t len;
+        char rem[16];
+        unsigned int b[4];
+        int n, i;
+
+        /* IP addresses must be between 7 and 15 characters */
+        if ((15 < (len = strnlen(addr, 16))) || 7 > len)
+                return 0;
+
+        /* Scan the string into numbers and a remaining string */
+        rem[0] = '\0';
+        n = sscanf(addr, "%3u.%3u.%3u.%3u%s", &b[0], &b[1], &b[2], &b[3], rem);
+
+        /* If we got a remaining string or didn't get all four numbers, it's
+         * not a valid address. */
+        if (('\0' != rem[0]) || 4 != n)
+                return 0;
+
+        /* Make sure the read bytes are within range */
+        for (i = 0; i < 4; ++i)
+                if (255 < b[i])
+                        return 0;
+
+        return 1;
 }
