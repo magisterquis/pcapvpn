@@ -31,7 +31,7 @@
 void usage(void);
 int do_tap(char *dev);
 int do_pcap(int promisc, char *dev, char *addr);
-void * tap_rx(void *fd);
+void *tap_rx(void *fd);
 int tap_tx(int fd);
 void read_full(int fd, void *buf, size_t nbytes);
 void *pcap_tx(void *arg);
@@ -63,8 +63,6 @@ main(int argc, char **argv)
         argc -= optind;
         argv += optind;
 
-        /* Get tap device name or MAC address */
-
         if (use_tap) {
                 if (1 > argc)
                         usage();
@@ -91,6 +89,7 @@ do_tap(char *dev)
         if (0 != pthread_create(&rx, NULL, tap_rx, &fd))
                 err(2, "pthread_create");
 
+        /* Send frames */
         return tap_tx(fd);
 }
 
