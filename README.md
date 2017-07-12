@@ -66,17 +66,18 @@ Example
 There are two examples below.  Both make these assumptions:
 - The attacker is running OpenBSD
 - The victim host is running Linux and uses the iproute2 toolset
-- The PcapVPN is on both hosts as `pcapvpn`,
+- The PcapVPN binary is on both hosts as `pcapvpn`,
 - The commands are either run as root or with appropriate use of
-doas/sudo/setcap.
+`doas`/`sudo`/`setcap`/such.
 - ksh is the shell on the attacker (bash will work, though the syntax to
 connect two processes' stdio is different).
-- The victim's `eth0` interface is connected to the network 
+- The victim's `eth0` interface is connected to the target network 
 
 ### Layer 2 filtering and DHCP
-This is the "normal" usage for when there's no port filtering, arpwatch, or
-anything of the sort.  Once connected, DHCP will be used to get an address.  Of
-course, the tap device can just as well be assigned an address manually.
+This is the "normal" usage, suitable for when there's no port filtering,
+arpwatch, or anything of the sort.  Once connected, DHCP will be used to get an
+address.  Of course, the tap device can just as well be assigned an address
+manually.
 
 On the attacker:
 ```sh
@@ -98,19 +99,19 @@ At this point, tap0 is (virtually) on the network to which the victim's `eth0`
 interface is connected.
 
 ### Layer 3 filtering and a static address
-In the case of MAC filtering on the victim's switch (or VirtualBox), or if
-putting another MAC address on the network is a bad idea, it's possible to use
-the victim interface's MAC address and only bring back frames destined to a
-manually-set IP address.
+In the case of MAC filtering on the victim's switch (e.g. a VirtualBox internal
+network), or if putting another MAC address on the network is a bad idea, it's
+possible to use the victim interface's MAC address and only transport frames
+destined to a manually-set IP address back to the attacker.
 
 This requires finding an unused IP address on the target network, as well as
 making sure the victim host doesn't react adversely to unwanted frames (i.e.
 frames sent to it with the wrong address).  There are various ways to do this;
 the example assumes that this information has been previously gathered.
 
-For this example, the victim's mac address is assumed to be `11:22:33:44:55:66`
-and it is assumed 1.2.3.4/24 is a valid and unused (and safe to mooch) address
-on the victim's network.
+For this example, the victim's MAC address is assumed to be `11:22:33:44:55:66`
+and it is assumed `1.2.3.4/24` is a valid and unused (and safe to mooch)
+address on the victim's network.
 
 On the attacker:
 ```sh
@@ -124,17 +125,22 @@ ifconfig tap0 inet 1.2.3.4/24
 # Start the local end
 ./pcapvpn -t tap0 |&
 
-# Connect it to the victim and filter on the tap device's MAC address
+# Connect it to the victim and filter on the tap device's IP address
 ssh user@victim "./pcapvpn eth0 1.2.3.4" >&p <&p &
 ```
-It is probably wise at this point to monitor traffic on the victim for a bit.
+Nothing need be done on the host, but it is probably wise at this point to
+monitor traffic on the victim for a bit.
 
 
 Building
 --------
-The included script [build.sh](./build.sh) can be used to build PcapVPN.  It
-is written for development, and will likely need tweaking, but is a good start,
-anyways.
+The included build script [build.sh](./build.sh) can be used to build PcapVPN.
+It is written for development, and will likely need tweaking, but is a good
+start, anyways.  In particular, most Linux distributions don't seem to ship
+with libpcap archives suitable for static linking, so either `-static` will
+need to be removed (and victims will have to have libpcap installed), or
+libpcap will have to be built statically manually, and the `LDFLAGS` and
+`CPPFLAGS` environment variables will have to be set appropriately.
 
 
 Future Features (Wishlist)
@@ -144,4 +150,5 @@ The following features may be implemented in the future:
 - Standalone transports
 - Linux tap device support
 - Windows tap device equivalent support
+
 Pull requests are welcome.
