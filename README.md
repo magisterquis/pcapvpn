@@ -18,7 +18,7 @@ At its core, PcapVPN is nothing more than an adapter between a tap device and
 stdin/out on one side of the VPN (the attacker side, usually) and between pcap
 and stdin/out on the other (a victim, usually).
 
-###Attacker side
+### Attacker side
 When used with the `-t` flag, a tap device given on the command line is opened,
 and any frames read are sent to standard output.
 
@@ -30,7 +30,7 @@ At the moment, a file interface to the tap device is required, i.e. OpenBSD's
 This does not necessarily require root access, so long as the tap device is
 accessible by the user running PcapVPN.
 
-###Victim side
+### Victim side
 When given an interface and a MAC address, an IP address, or a BPF filter,
 PcapVPN sniffs the traffic on the given interface and any frames matching the
 given MAC address, IP address, or filter are written to standard output.
@@ -43,7 +43,7 @@ capabilities (e.g. with setcap(7)).
 By default, promiscous mode is enabled on the victim's interface.  This can
 be changed by setting the `-p` flag on the instance running on the .
 
-###Transport
+### Transport
 Generally speaking, PcapVPN is transport-agnostic, though so far, only SSH
 has been used to connect the two instances of PcapVPN.  The protocol only adds
 two bytes of overhead for every frame, so with possible modification to the MTU
@@ -73,7 +73,7 @@ doas/sudo/setcap.
 connect two processes' stdio is different).
 - The victim's `eth0` interface is connected to the network 
 
-###Layer 2 filtering and DHCP
+### Layer 2 filtering and DHCP
 This is the "normal" usage for when there's no port filtering, arpwatch, or
 anything of the sort.  Once connected, DHCP will be used to get an address.  Of
 course, the tap device can just as well be assigned an address manually.
@@ -97,7 +97,7 @@ Nothing need be done on the victim.
 At this point, tap0 is (virtually) on the network to which the victim's `eth0`
 interface is connected.
 
-###Layer 3 filtering and a static address
+### Layer 3 filtering and a static address
 In the case of MAC filtering on the victim's switch (or VirtualBox), or if
 putting another MAC address on the network is a bad idea, it's possible to use
 the victim interface's MAC address and only bring back frames destined to a
