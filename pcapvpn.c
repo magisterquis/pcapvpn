@@ -183,7 +183,8 @@ do_pcap(char *dev, char *addr)
                         err(21, "asprintf");
         }
 
-        fprintf(stderr, "BPF filter: %s\n", filt); fflush(stderr); /* DEBUG */
+        /* Uncomment the below to print the BPF filter */
+        /* fprintf(stderr, "BPF filter: %s\n", filt); fflush(stderr); *//* DEBUG */ 
         if (NULL == filt) {
                 errx(1, "NULL filter");
         }
