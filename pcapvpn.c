@@ -24,14 +24,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PROMISC   1
 #define BUFLEN    UINT16_MAX
 #define MACFILTER "ether host %s"
 #define IPFILTER  "host %s"
 
 void usage(void);
 int do_tap(char *dev);
-int do_pcap(char *dev, char *addr);
+int do_pcap(int promisc, char *dev, char *addr);
 void * tap_rx(void *fd);
 int tap_tx(int fd);
 void read_full(int fd, void *buf, size_t nbytes);
@@ -45,14 +44,18 @@ main(int argc, char **argv)
 {
         int ch;
         int use_tap;
+        int promisc;
 
         /* Work out whether to use the tap device or pcap */
         use_tap = 0;
-        while (-1 != (ch = getopt(argc, argv, "t")))
+        promisc = 1;
+        while (-1 != (ch = getopt(argc, argv, "pt")))
                 switch (ch) {
                         case 't':
                                 use_tap = 1;
                                 break;
+                        case 'p':
+                                promisc = 0;
                         default:
                                 usage();
                                 break;
@@ -69,7 +72,7 @@ main(int argc, char **argv)
         } else {
                 if (2 > argc)
                         usage();
-                return do_pcap(argv[0], argv[1]);
+                return do_pcap(promisc, argv[0], argv[1]);
         }
 }
 
@@ -161,7 +164,7 @@ read_full(int fd, void *buf, size_t nbytes)
 
 /* do_pcap proxies between pcap sniffing, stdio, and pcap injection */
 int
-do_pcap(char *dev, char *addr)
+do_pcap(int promisc, char *dev, char *addr)
 {
         pcap_t *p;
         struct bpf_program prog;
@@ -190,7 +193,7 @@ do_pcap(char *dev, char *addr)
         }
         
         /* Attach to device with pcap */
-        if (NULL == (p = pcap_open_live(dev, BUFLEN, PROMISC, 10, errbuf)))
+        if (NULL == (p = pcap_open_live(dev, BUFLEN, promisc, 10, errbuf)))
                 errx(11, "pcap_open_live: %s", errbuf);
 
 
@@ -281,7 +284,7 @@ usage(void)
 {
         extern char *__progname;
         fprintf(stderr, "Usage: %s -t tap_file\n", __progname);
-        fprintf(stderr, "       %s device mac_address\n", __progname);
+        fprintf(stderr, "       %s [-p] device mac_address\n", __progname);
         exit(-1);
 }
 
