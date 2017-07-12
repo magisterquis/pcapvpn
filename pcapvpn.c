@@ -24,10 +24,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BUFLEN UINT16_MAX
-
+#define PROMISC   1
+#define BUFLEN    UINT16_MAX
 #define MACFILTER "ether host %s"
-#define IPFILTER "host %s"
+#define IPFILTER  "host %s"
 
 void usage(void);
 int do_tap(char *dev);
@@ -190,7 +190,7 @@ do_pcap(char *dev, char *addr)
         }
         
         /* Attach to device with pcap */
-        if (NULL == (p = pcap_open_live(dev, BUFLEN, 1, 10, errbuf)))
+        if (NULL == (p = pcap_open_live(dev, BUFLEN, PROMISC, 10, errbuf)))
                 errx(11, "pcap_open_live: %s", errbuf);
 
 
