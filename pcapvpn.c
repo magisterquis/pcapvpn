@@ -14,6 +14,7 @@
 
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pcap.h>
@@ -33,7 +34,7 @@ int do_tap(char *dev);
 int do_pcap(int promisc, char *dev, char *addr);
 void *tap_rx(void *fd);
 int tap_tx(int fd);
-void read_full(int fd, void *buf, size_t nbytes);
+ssize_t read_full(int fd, void *buf, size_t nbytes);
 void *pcap_tx(void *arg);
 void pcap_rx(u_char *, const struct pcap_pkthdr *hdr, const u_char *pkt);
 int is_mac(char *addr);
@@ -131,7 +132,6 @@ tap_tx(int fd)
         uint16_t nr;
         uint8_t buf[BUFLEN];
 
-
         for (;;) {
                 /* Read the size and frame */
                 read_full(STDIN_FILENO, &nr, sizeof(nr));
@@ -139,15 +139,19 @@ tap_tx(int fd)
                 read_full(STDIN_FILENO, buf, (size_t)nr);
 
                 /* Send to the tap device */
-                if (-1 == write(fd, buf, (size_t)nr))
+                if (-1 == write(fd, buf, (size_t)nr)) {
+                        /* Drop packets sent too fast */
+                        if (ENOBUFS == errno)
+                                continue;
                         err(9, "write");
+                }
         }
 
         return 10;
 }
 
 /* read_full reads nbytes bytes from fd into buf. */
-void
+ssize_t
 read_full(int fd, void *buf, size_t nbytes)
 {
         ssize_t tot, nr;
@@ -159,6 +163,7 @@ read_full(int fd, void *buf, size_t nbytes)
                         err(8, "read");
                 tot += nr;
         }
+        return tot;
 }
 
 /* do_pcap proxies between pcap sniffing, stdio, and pcap injection */
@@ -344,3 +349,4 @@ is_ip(char *addr)
 
         return 1;
 }
+
