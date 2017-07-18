@@ -79,7 +79,7 @@ arpwatch, or anything of the sort.  Once connected, DHCP will be used to get an
 address.  Of course, the tap device can just as well be assigned an address
 manually.
 
-On the attacker:
+On the attacker (ksh):
 ```sh
 # Make the tap device
 ifconfig tap0 create
@@ -113,7 +113,7 @@ For this example, the victim's MAC address is assumed to be `11:22:33:44:55:66`
 and it is assumed `1.2.3.4/24` is a valid and unused (and safe to mooch)
 address on the victim's network.
 
-On the attacker:
+On the attacker (ksh):
 ```sh
 # Make the tap device
 ifconfig tap0 create
