@@ -287,8 +287,12 @@ void
 usage(void)
 {
         extern char *__progname;
-        fprintf(stderr, "Usage: %s -t tap_file\n", __progname);
-        fprintf(stderr, "       %s [-p] device mac_address\n", __progname);
+        fprintf(stderr, "Usage: (attacker) %s -t tap_file\n", __progname);
+        fprintf(
+                stderr,
+                "       (victim)   %s [-p] device mac_address\n",
+                __progname
+        );
         exit(-1);
 }
 
