@@ -24,8 +24,12 @@ and any frames read are sent to standard output.
 
 Any frames read from standard input are written to the tap device.
 
-At the moment, a file interface to the tap device is required, i.e. OpenBSD's
-`/dev/tapN` (as created by `ifconfig tap0 create`).
+On Openbsd, a file interface to the tap device is required, i.e. OpenBSD's
+`/dev/tapN` (as created by `ifconfig tap0 create`).  Several should already
+exist.  `/dev/tap0` is probably a good choice.
+
+On Linux, a name for the tap device is required, which can have a `%d` as a
+placeholder for a number.  `tap%d` is probably a good choice.
 
 This does not necessarily require root access, so long as the tap device is
 accessible by the user running PcapVPN.

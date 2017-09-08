@@ -8,6 +8,9 @@
 
 #ifdef __linux__
 #define _GNU_SOURCE
+#include <linux/if.h>
+#include <linux/if_tun.h>
+#include <sys/ioctl.h>
 #endif /* #ifdef __linux__ */
 
 #include <arpa/inet.h>
@@ -81,10 +84,28 @@ do_tap(char *dev)
 {
         int fd;
         pthread_t rx;
-
+#ifdef __OpenBSD__
         /* Open the tap device */
         if (-1 == (fd = open(dev, O_RDWR)))
                 err(1, "open");
+#else
+        /* The below yoinked from https://www.kernel.org/doc/Documentation/networking/tuntap.txt */
+        struct ifreq ifr;
+
+        memset(&ifr, 0, sizeof(ifr));
+
+        if (-1 == (fd = open("/dev/net/tun", O_RDWR)))
+                err(7, "open");
+
+        ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+        strncpy(ifr.ifr_name, dev, IFNAMSIZ-1);
+
+        if (-1 == ioctl(fd, TUNSETIFF, (void *)&ifr))
+                err(22, "ioctl");
+
+        fprintf(stderr, "Device: %s\n", ifr.ifr_name);
+
+#endif /* #ifdef __OpenBSD__ */
         
         /* Start receiving frames */
         if (0 != pthread_create(&rx, NULL, tap_rx, &fd))
@@ -287,7 +308,7 @@ void
 usage(void)
 {
         extern char *__progname;
-        fprintf(stderr, "Usage: (attacker) %s -t tap_file\n", __progname);
+        fprintf(stderr, "Usage: (attacker) %s -t tap_dev\n", __progname);
         fprintf(
                 stderr,
                 "       (victim)   %s [-p] device mac_address\n",
