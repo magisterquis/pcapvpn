@@ -60,6 +60,7 @@ main(int argc, char **argv)
                                 break;
                         case 'p':
                                 promisc = 0;
+                                break;
                         default:
                                 usage();
                                 break;
