@@ -316,7 +316,7 @@ usage(void)
         fprintf(stderr, "Usage: (attacker) %s -t tap_dev\n", __progname);
         fprintf(
                 stderr,
-                "       (victim)   %s [-p] device mac_address\n",
+                "       (victim)   %s [-p] device filter\n",
                 __progname
         );
         exit(-1);

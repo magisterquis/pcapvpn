@@ -152,7 +152,6 @@ Future Features (Wishlist)
 The following features may be implemented in the future:
 - Encryption
 - Standalone transports
-- Linux tap device support
 - Windows tap device equivalent support
 
 Pull requests are welcome.
