@@ -132,6 +132,8 @@ tap_rx(void *fd)
                 /* Read a frame from the tap device */
                 if (-1 == (nr = read(rfd, buf, sizeof(buf))))
                         err(3, "read");
+                if (0 == nr)
+                        exit(0);
 
                 /* Should never happen */
                 if (UINT16_MAX < nr)
@@ -183,6 +185,8 @@ read_full(int fd, void *buf, size_t nbytes)
         while (tot < nbytes) {
                 if (-1 == (nr = read(fd, ((char *)buf)+tot, nbytes-tot)))
                         err(8, "read");
+                if (0 == nr)
+                        exit(0);
                 tot += nr;
         }
         return tot;
