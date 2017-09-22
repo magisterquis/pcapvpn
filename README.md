@@ -32,7 +32,7 @@ Usage
 -----
 The same PcapVPN binary is used on both attacker and target.
 
-###Attacker
+### Attacker
 This is probably a Kali box, but it's a neat trick to stick this on a gateway
 to transparently route its network to target space.
 
@@ -50,7 +50,7 @@ stdout, prepended with a two-byte size.
 Anything written to stdin is interpreted as two bytes of size, and a ethernet
 frame, which is then sent to the kernel via the tap(4) interface.
 
-###Victim
+### Victim
 The victim must already be compromised.  
 
 ```sh
