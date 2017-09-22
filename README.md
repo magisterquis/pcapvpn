@@ -79,6 +79,7 @@ Using SSH as a C2 channel, the following works nicely
 mkfifo ./f
 ./pcapvpn -t tap0 <f | ssh user@victim "pcapvpn -p eth0 $(ifconfig tap0 | grep ether | egrep  -o '[a-f0-9:]{17}')" >f
 dhclient tap0
+```
 
 
 Windows
