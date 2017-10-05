@@ -53,7 +53,7 @@ main(int argc, char **argv)
         /* Work out whether to use the tap device or pcap */
         use_tap = 0;
         promisc = 1;
-        while (-1 != (ch = getopt(argc, argv, "pt")))
+        while (-1 != (ch = getopt(argc, argv, "pth")))
                 switch (ch) {
                         case 't':
                                 use_tap = 1;
@@ -61,6 +61,7 @@ main(int argc, char **argv)
                         case 'p':
                                 promisc = 0;
                                 break;
+                        case 'h':
                         default:
                                 usage();
                                 break;
