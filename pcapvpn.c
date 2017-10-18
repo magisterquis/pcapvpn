@@ -156,7 +156,7 @@ tap_tx(int fd)
 {
         uint16_t nr;
         uint8_t buf[BUFLEN];
-int it;
+        int i;
 
         for (;;) {
                 /* Read the size and frame */
