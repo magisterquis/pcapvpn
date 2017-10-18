@@ -156,6 +156,7 @@ tap_tx(int fd)
 {
         uint16_t nr;
         uint8_t buf[BUFLEN];
+int it;
 
         for (;;) {
                 /* Read the size and frame */
@@ -168,6 +169,14 @@ tap_tx(int fd)
                         /* Drop packets sent too fast */
                         if (ENOBUFS == errno)
                                 continue;
+                        /* Drop invalid frames */
+                        if (EINVAL == errno) {
+                                fprintf(stderr, "Invalid frame: ");
+                                for (i = 0; i < nr; ++i)
+                                        fprintf(stderr, "%02X", buf[i]);
+                                fprintf(stderr, "\n"); fflush(stderr);
+                                continue;
+                        }
                         err(9, "write");
                 }
         }
