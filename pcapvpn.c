@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 #define BUFLEN    UINT16_MAX
-#define MACFILTER "ether host %s"
+#define MACFILTER "ether dst %s or ether dst ff:ff:ff:ff:ff:ff"
 #define IPFILTER  "host %s"
 
 void usage(void);
